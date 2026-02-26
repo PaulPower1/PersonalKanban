@@ -57,7 +57,9 @@ playwright-report/
 *.tsbuildinfo
 
 # Demo output
-demo-output/
+demo-output/*
+!demo-output/personalkanban-demo.mp4
+!demo-output/preview.jpg
 
 # Claude Code
 .claude/

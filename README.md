@@ -2,6 +2,13 @@
 
 A full-stack Kanban board app for managing personal tasks. Features drag-and-drop, voice dictation, tiered billing, and multi-board support.
 
+## Demo Video
+
+<video controls width="960" poster="demo-output/preview.jpg">
+  <source src="demo-output/personalkanban-demo.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
 ## Features
 
 - **Four-column workflow** -- Backlog, To Do, In Progress, Done
