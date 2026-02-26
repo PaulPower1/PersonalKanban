@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="6" fill="#12121a"/>
+  <!-- Column 1: 3 cards (cyan) -->
+  <rect x="4" y="4" width="7" height="4" rx="1" fill="#06b6d4"/>
+  <rect x="4" y="10" width="7" height="4" rx="1" fill="#06b6d4"/>
+  <rect x="4" y="16" width="7" height="4" rx="1" fill="#06b6d4"/>
+  <!-- Column 2: 2 cards (amber) -->
+  <rect x="12.5" y="4" width="7" height="4" rx="1" fill="#f59e0b"/>
+  <rect x="12.5" y="10" width="7" height="4" rx="1" fill="#f59e0b"/>
+  <!-- Column 3: 1 card (green) -->
+  <rect x="21" y="4" width="7" height="4" rx="1" fill="#10b981"/>
+</svg>

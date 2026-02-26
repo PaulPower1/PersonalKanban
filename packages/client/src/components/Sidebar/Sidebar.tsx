@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { KanbanBoard, BillingStatus } from '../../types';
 
@@ -20,10 +20,41 @@ export function Sidebar({
   billingStatus,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isNaming, setIsNaming] = useState(false);
+  const [newBoardName, setNewBoardName] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAddBoard = () => {
-    const title = `Board ${boards.length + 1}`;
-    onAddBoard(title);
+  useEffect(() => {
+    if (isNaming) {
+      nameInputRef.current?.focus();
+    }
+  }, [isNaming]);
+
+  const handleStartNaming = () => {
+    setNewBoardName('');
+    setIsNaming(true);
+  };
+
+  const handleSubmitName = () => {
+    const trimmed = newBoardName.trim();
+    if (trimmed) {
+      onAddBoard(trimmed);
+    }
+    setIsNaming(false);
+    setNewBoardName('');
+  };
+
+  const handleCancelNaming = () => {
+    setIsNaming(false);
+    setNewBoardName('');
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSubmitName();
+    } else if (e.key === 'Escape') {
+      handleCancelNaming();
+    }
   };
 
   const usagePercent = billingStatus
@@ -82,9 +113,21 @@ export function Sidebar({
               </div>
             ))}
           </div>
-          <button className="sidebar__add-btn" onClick={handleAddBoard}>
-            + New Board
-          </button>
+          {isNaming ? (
+            <input
+              ref={nameInputRef}
+              className="sidebar__name-input"
+              value={newBoardName}
+              onChange={(e) => setNewBoardName(e.target.value)}
+              onKeyDown={handleNameKeyDown}
+              onBlur={handleSubmitName}
+              placeholder="Board name..."
+            />
+          ) : (
+            <button className="sidebar__add-btn" onClick={handleStartNaming}>
+              + New Board
+            </button>
+          )}
         </>
       )}
     </div>

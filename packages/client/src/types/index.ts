@@ -84,6 +84,14 @@ export interface BillingStatus {
   cardLimit: number;
 }
 
+// Card filters
+export interface CardFilters {
+  searchText: string;
+  category: string;
+  tag: string;
+  priority: Priority | '';
+}
+
 // Card limit error
 export interface CardLimitError {
   error: string;

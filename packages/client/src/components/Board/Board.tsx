@@ -18,9 +18,10 @@ interface Props {
   moveCard: (cardId: string, targetColumnId: ColumnId, targetIndex: number) => void;
   categoryColorMap: Record<string, string>;
   onEditCard: (card: Card) => void;
+  onAddCard?: (columnId: ColumnId) => void;
 }
 
-export function Board({ getColumnCards, moveCard, categoryColorMap, onEditCard }: Props) {
+export function Board({ getColumnCards, moveCard, categoryColorMap, onEditCard, onAddCard }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor)
@@ -45,6 +46,7 @@ export function Board({ getColumnCards, moveCard, categoryColorMap, onEditCard }
             cards={getColumnCards(col.id)}
             categoryColorMap={categoryColorMap}
             onEditCard={onEditCard}
+            onAddCard={onAddCard}
           />
         ))}
       </div>

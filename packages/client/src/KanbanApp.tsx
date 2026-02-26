@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import './App.css';
-import { Card, KanbanBoard, ParsedCardData, ColumnId, Priority } from './types';
+import { Card, KanbanBoard, ParsedCardData, ColumnId, Priority, CardFilters } from './types';
 import { parseCardTranscript } from './utils/parseCardTranscript';
 import { parseVoiceCommand, findCardByTitle } from './utils/parseVoiceCommand';
 import { useAppState } from './hooks/useAppState';
@@ -13,6 +13,8 @@ import { CardModal } from './components/CardModal/CardModal';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { CategoryManager } from './components/CategoryManager/CategoryManager';
 import { ImportBanner } from './components/ImportBanner/ImportBanner';
+import { FilterBar } from './components/FilterBar/FilterBar';
+import * as boardsApi from './api/boards';
 import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
 
@@ -48,7 +50,10 @@ export function KanbanApp() {
 
   const [modalCard, setModalCard] = useState<Card | null | 'new'>(null);
   const [dictatedCardData, setDictatedCardData] = useState<ParsedCardData | null>(null);
+  const [initialColumnId, setInitialColumnId] = useState<ColumnId | undefined>(undefined);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [filters, setFilters] = useState<CardFilters>({ searchText: '', category: '', tag: '', priority: '' });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [cardLimitError, setCardLimitError] = useState<{
     limit: number;
     currentCount: number;
@@ -95,6 +100,14 @@ export function KanbanApp() {
   const handleAddCard = useCallback(() => {
     setDictatedCardData(null);
     setCardLimitError(null);
+    setInitialColumnId(undefined);
+    setModalCard('new');
+  }, []);
+
+  const handleAddCardToColumn = useCallback((columnId: ColumnId) => {
+    setDictatedCardData(null);
+    setCardLimitError(null);
+    setInitialColumnId(columnId);
     setModalCard('new');
   }, []);
 
@@ -108,6 +121,7 @@ export function KanbanApp() {
     setModalCard(null);
     setDictatedCardData(null);
     setCardLimitError(null);
+    setInitialColumnId(undefined);
   }, []);
 
   const handleSaveCard = useCallback(
@@ -155,11 +169,26 @@ export function KanbanApp() {
   );
 
   const handleImport = useCallback(
-    (board: KanbanBoard) => {
-      // File import handled via old mechanism for non-API boards
-      void board;
+    async (board: KanbanBoard) => {
+      try {
+        const created = await boardsApi.createBoard(board.title);
+        for (const card of board.cards) {
+          await boardsApi.createCard(created.id, {
+            title: card.title,
+            description: card.description,
+            category: card.category,
+            priority: card.priority,
+            dueDate: card.dueDate,
+            tags: card.tags,
+            columnId: card.columnId,
+          });
+        }
+        await refreshBoards();
+      } catch {
+        // Import may fail if user hits card limits
+      }
     },
-    []
+    [refreshBoards]
   );
 
   const handleCategoryManagerSave = useCallback(
@@ -171,6 +200,37 @@ export function KanbanApp() {
   );
 
   const categoryColorMap = getCategoryColorMap();
+
+  const getFilteredColumnCards = useCallback(
+    (columnId: ColumnId): Card[] => {
+      let cards = getColumnCards(columnId);
+      if (filters.searchText) {
+        const search = filters.searchText.toLowerCase();
+        cards = cards.filter(
+          (c) =>
+            c.title.toLowerCase().includes(search) ||
+            c.description.toLowerCase().includes(search)
+        );
+      }
+      if (filters.category) {
+        cards = cards.filter((c) => c.category === filters.category);
+      }
+      if (filters.tag) {
+        cards = cards.filter((c) => c.tags.includes(filters.tag));
+      }
+      if (filters.priority) {
+        cards = cards.filter((c) => c.priority === filters.priority);
+      }
+      return cards;
+    },
+    [getColumnCards, filters]
+  );
+
+  const totalCardCount = activeBoard?.cards.length ?? 0;
+  const filteredCardCount = useMemo(() => {
+    const cols: ColumnId[] = ['backlog', 'todo', 'in-progress', 'done'];
+    return cols.reduce((sum, col) => sum + getFilteredColumnCards(col).length, 0);
+  }, [getFilteredColumnCards]);
 
   // Dev-only: expose dictation handler for E2E tests
   useEffect(() => {
@@ -224,25 +284,41 @@ export function KanbanApp() {
         isDictateSupported={isDictateSupported}
         userName={user?.displayName}
         onLogout={logout}
+        onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
       />
 
       <ImportBanner onImported={refreshBoards} />
 
-      <div className="app__body">
-        <Sidebar
-          boards={boards}
-          activeBoardId={activeBoardId || ''}
-          onSelectBoard={setActiveBoard}
-          onAddBoard={addBoard}
-          onDeleteBoard={deleteBoard}
-          billingStatus={billingStatus}
+      {activeBoard && (
+        <FilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          categories={allCategories}
+          tags={allTags}
+          visibleCount={filteredCardCount}
+          totalCount={totalCardCount}
         />
+      )}
+
+      <div className="app__body">
+        <div className={`sidebar-wrapper${mobileSidebarOpen ? ' sidebar-wrapper--open' : ''}`}>
+          <div className="sidebar-wrapper__backdrop" onClick={() => setMobileSidebarOpen(false)} />
+          <Sidebar
+            boards={boards}
+            activeBoardId={activeBoardId || ''}
+            onSelectBoard={(id) => { setActiveBoard(id); setMobileSidebarOpen(false); }}
+            onAddBoard={addBoard}
+            onDeleteBoard={deleteBoard}
+            billingStatus={billingStatus}
+          />
+        </div>
         {activeBoard && (
           <Board
-            getColumnCards={getColumnCards}
+            getColumnCards={getFilteredColumnCards}
             moveCard={moveCard}
             categoryColorMap={categoryColorMap}
             onEditCard={handleEditCard}
+            onAddCard={handleAddCardToColumn}
           />
         )}
       </div>
@@ -253,6 +329,8 @@ export function KanbanApp() {
           allCategories={allCategories}
           allTags={allTags}
           initialCardData={dictatedCardData ?? undefined}
+          initialColumnId={initialColumnId}
+          categoryColorMap={categoryColorMap}
           onSave={handleSaveCard}
           onUpdate={updateCard}
           onDelete={deleteCard}

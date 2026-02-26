@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Card, ColumnDefinition } from '../../types';
+import { Card, ColumnDefinition, ColumnId } from '../../types';
 import { KanbanCard } from '../Card/KanbanCard';
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   cards: Card[];
   categoryColorMap: Record<string, string>;
   onEditCard: (card: Card) => void;
+  onAddCard?: (columnId: ColumnId) => void;
 }
 
-export function Column({ column, cards, categoryColorMap, onEditCard }: Props) {
+export function Column({ column, cards, categoryColorMap, onEditCard, onAddCard }: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
     data: { type: 'column' },
@@ -32,7 +33,21 @@ export function Column({ column, cards, categoryColorMap, onEditCard }: Props) {
           />
           {column.title}
         </div>
-        <span className="column__count">{cards.length}</span>
+        <div className="column__header-actions">
+          <span className="column__count">{cards.length}</span>
+          {onAddCard && (
+            <button
+              className="column__add-btn"
+              onClick={() => onAddCard(column.id)}
+              title={`Add card to ${column.title}`}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="8" y1="3" x2="8" y2="13" />
+                <line x1="3" y1="8" x2="13" y2="8" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="column__cards" ref={setNodeRef}>

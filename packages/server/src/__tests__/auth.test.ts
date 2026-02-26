@@ -35,6 +35,22 @@ describe('Auth endpoints', () => {
       expect(res.headers['set-cookie']).toBeDefined();
     });
 
+    it('creates a default board for the new user', async () => {
+      const registerRes = await request(app)
+        .post('/api/auth/register')
+        .send({ email: 'newboard@example.com', password: 'password123', displayName: 'Board Test' })
+        .expect(201);
+
+      const cookie = registerRes.headers['set-cookie'];
+      const boardsRes = await request(app)
+        .get('/api/boards')
+        .set('Cookie', cookie)
+        .expect(200);
+
+      expect(boardsRes.body).toHaveLength(1);
+      expect(boardsRes.body[0].title).toBe('My Board');
+    });
+
     it('rejects duplicate email', async () => {
       await request(app).post('/api/auth/register').send(testUser);
 
@@ -120,6 +136,26 @@ describe('Auth endpoints', () => {
       await request(app)
         .get('/api/auth/me')
         .expect(401);
+    });
+  });
+
+  describe('Google OAuth redirects', () => {
+    it('redirects /google to Google consent screen', async () => {
+      const res = await request(app)
+        .get('/api/auth/google')
+        .expect(302);
+
+      expect(res.headers.location).toMatch(/^https:\/\/accounts\.google\.com/);
+    });
+
+    it('redirects to CLIENT_URL/login on auth failure', async () => {
+      const res = await request(app)
+        .get('/api/auth/google/callback')
+        .query({ error: 'access_denied' })
+        .expect(302);
+
+      expect(res.headers.location).toMatch(/\/login$/);
+      expect(res.headers.location).not.toBe('/login');
     });
   });
 });

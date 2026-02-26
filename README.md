@@ -52,6 +52,166 @@ A full-stack Kanban board app for managing personal tasks. Features drag-and-dro
 | express-rate-limit | 7 |
 | Vitest + Supertest (unit tests) | 2.1 / 7 |
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    subgraph Client ["Client - React SPA, port 5173"]
+        UI["KanbanApp UI"]
+        AuthUI["Auth Pages - Login, Register"]
+        Billing["Billing Page"]
+        Router["React Router"]
+        Hooks["Hooks - useAppState, useBoard"]
+        API["API Client - apiFetch"]
+        Voice["Voice Engine - Speech Recognition, Synthesis"]
+        DnD["dnd-kit - Drag and Drop"]
+    end
+
+    subgraph Server ["Server - Express, port 3001"]
+        MW["Middleware - requireAuth, rateLimiter"]
+        AuthRoutes["Auth Routes - register, login, OAuth"]
+        BoardRoutes["Board Routes - CRUD, reorder"]
+        StripeRoutes["Stripe Routes - checkout, webhook"]
+        Entitlements["Entitlements Service - tier limits"]
+        Email["Email Service"]
+    end
+
+    subgraph External ["External Services"]
+        PG[("PostgreSQL via Prisma")]
+        Stripe["Stripe API"]
+        Resend["Resend Email"]
+        Google["Google OAuth"]
+    end
+
+    UI --> Hooks
+    UI --> DnD
+    UI --> Voice
+    AuthUI --> API
+    Billing --> API
+    Hooks --> API
+    Router --> UI
+    Router --> AuthUI
+    Router --> Billing
+
+    API -- "JWT cookie" --> MW
+    MW --> AuthRoutes
+    MW --> BoardRoutes
+    MW --> StripeRoutes
+    BoardRoutes --> Entitlements
+    Entitlements --> Email
+    AuthRoutes --> PG
+    BoardRoutes --> PG
+    StripeRoutes --> Stripe
+    Email --> Resend
+    AuthRoutes -.-> Google
+    Entitlements --> PG
+```
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client
+    participant Server
+    participant DB as PostgreSQL
+    participant S as Stripe API
+
+    User->>Client: Submit registration form
+    Client->>Server: POST /api/auth/register
+    Server->>S: Create Stripe customer
+    S-->>Server: stripeCustomerId
+    Server->>DB: Create User + AccountUpgrade (FREE tier)
+    Server-->>Client: 201 + Set httpOnly JWT cookie
+    Client->>Client: Navigate to /
+
+    Note over Client,Server: Subsequent requests include JWT cookie automatically
+
+    User->>Client: Submit login form
+    Client->>Server: POST /api/auth/login
+    Server->>DB: Verify email + bcrypt password
+    Server-->>Client: 200 + Set httpOnly JWT cookie
+```
+
+### Card Creation with Limit Check
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client
+    participant Server
+    participant Ent as Entitlements
+    participant DB as PostgreSQL
+    participant R as Resend
+
+    User->>Client: Create card (form or voice)
+    Client->>Server: POST /api/boards/:id/cards
+    Server->>Ent: canAddCard(userId)
+    Ent->>DB: Get tier + count all user cards
+    DB-->>Ent: tier=FREE, count=10, limit=10
+
+    alt Under limit
+        Ent-->>Server: allowed=true
+        Server->>DB: INSERT card + auto-create category
+        Server-->>Client: 201 Card
+        Client->>Client: Refresh board
+    else Limit reached
+        Ent-->>Server: allowed=false
+        Server->>R: Send limit notification email (once)
+        Server-->>Client: 403 CARD_LIMIT_EXCEEDED
+        Client->>Client: Show upgrade prompt
+    end
+```
+
+### Stripe Upgrade Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client
+    participant Server
+    participant S as Stripe
+    participant DB as PostgreSQL
+
+    User->>Client: Click "Upgrade to Starter"
+    Client->>Server: POST /api/stripe/create-checkout-session
+    Server->>S: Create checkout session ($5 one-time)
+    S-->>Server: sessionUrl
+    Server-->>Client: { sessionUrl }
+    Client->>S: Redirect to Stripe Checkout
+
+    User->>S: Complete payment
+    S->>Server: POST /api/stripe/webhook (signed)
+    Server->>Server: Verify webhook signature
+    Server->>DB: UPSERT AccountUpgrade (tier=STARTER)
+    Server-->>S: 200 received
+
+    User->>Client: Redirected to /billing?status=success
+    Client->>Server: GET /api/stripe/billing-status
+    Server-->>Client: { tier: STARTER, limit: 50 }
+```
+
+### Drag-and-Drop Reorder
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant DnD as @dnd-kit
+    participant Hook as useBoard
+    participant Server
+    participant DB as PostgreSQL
+
+    User->>DnD: Drag card to new column/position
+    DnD->>Hook: onDragEnd(cardId, targetColumn, index)
+    Hook->>Hook: Optimistic UI update
+    Hook->>Server: POST /api/boards/:id/cards/reorder
+    Server->>DB: Transaction: update columnId + order for each card
+    DB-->>Server: OK
+    Server-->>Hook: 200
+```
+
 ## Prerequisites
 
 - **Node.js** >= 18

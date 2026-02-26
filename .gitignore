@@ -30,6 +30,19 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+*.env.bak
+*.env.local
+*.secrets*
+
+# Certificates / private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
 
 # Database files
 *.sqlite
@@ -42,6 +55,9 @@ playwright-report/
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Demo output
+demo-output/
 
 # Claude Code
 .claude/

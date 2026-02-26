@@ -12,6 +12,14 @@ const PLANS = [
 
 const TIER_ORDER = { FREE: 0, STARTER: 1, PRO: 2 };
 
+const FEATURES = [
+  { name: 'Total Cards', free: '10', starter: '50', pro: '100' },
+  { name: 'Boards', free: 'Unlimited', starter: 'Unlimited', pro: 'Unlimited' },
+  { name: 'CSV Export', free: true, starter: true, pro: true },
+  { name: 'Voice Dictation', free: true, starter: true, pro: true },
+  { name: 'Priority Support', free: false, starter: false, pro: true },
+];
+
 export function BillingPage() {
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,11 +57,30 @@ export function BillingPage() {
     }
   };
 
+  const renderCellValue = (val: string | boolean) => {
+    if (typeof val === 'string') return val;
+    if (val) {
+      return (
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--neon-green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 8 6.5 11.5 13 5" />
+        </svg>
+      );
+    }
+    return (
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round">
+        <line x1="4" y1="8" x2="12" y2="8" />
+      </svg>
+    );
+  };
+
   if (loading) {
     return (
       <div className="billing-page">
         <div className="billing-page__header">
           <button className="toolbar__btn" onClick={() => navigate('/')}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 12L6 8l4-4" />
+            </svg>
             Back
           </button>
           <h1 className="billing-page__title">Billing</h1>
@@ -75,6 +102,9 @@ export function BillingPage() {
     <div className="billing-page">
       <div className="billing-page__header">
         <button className="toolbar__btn" onClick={() => navigate('/')}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 12L6 8l4-4" />
+          </svg>
           Back
         </button>
         <h1 className="billing-page__title">Billing</h1>
@@ -128,6 +158,30 @@ export function BillingPage() {
             </div>
           );
         })}
+      </div>
+
+      <div className="billing-page__comparison">
+        <h2 className="billing-page__comparison-title">Feature Comparison</h2>
+        <table className="billing-table">
+          <thead>
+            <tr>
+              <th className="billing-table__feature-header">Feature</th>
+              <th>Free</th>
+              <th>Starter</th>
+              <th>Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {FEATURES.map((feature) => (
+              <tr key={feature.name}>
+                <td className="billing-table__feature-name">{feature.name}</td>
+                <td>{renderCellValue(feature.free)}</td>
+                <td>{renderCellValue(feature.starter)}</td>
+                <td>{renderCellValue(feature.pro)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

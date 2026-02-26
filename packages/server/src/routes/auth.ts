@@ -44,17 +44,25 @@ router.post('/register', authLimiter, async (req: Request, res: Response, next: 
       // Stripe not configured or unavailable — customer will be created lazily at checkout
     }
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        displayName,
-        stripeCustomerId,
-      },
-    });
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          displayName,
+          stripeCustomerId,
+        },
+      });
 
-    await prisma.accountUpgrade.create({
-      data: { userId: user.id },
+      await tx.accountUpgrade.create({
+        data: { userId: created.id },
+      });
+
+      await tx.board.create({
+        data: { title: 'My Board', userId: created.id },
+      });
+
+      return created;
     });
 
     const token = signToken(user.id);
@@ -158,17 +166,25 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
                 // Stripe not configured — customer will be created lazily
               }
 
-              user = await prisma.user.create({
-                data: {
-                  email,
-                  googleId: profile.id,
-                  displayName: profile.displayName || email,
-                  stripeCustomerId,
-                },
-              });
+              user = await prisma.$transaction(async (tx) => {
+                const created = await tx.user.create({
+                  data: {
+                    email,
+                    googleId: profile.id,
+                    displayName: profile.displayName || email,
+                    stripeCustomerId,
+                  },
+                });
 
-              await prisma.accountUpgrade.create({
-                data: { userId: user.id },
+                await tx.accountUpgrade.create({
+                  data: { userId: created.id },
+                });
+
+                await tx.board.create({
+                  data: { title: 'My Board', userId: created.id },
+                });
+
+                return created;
               });
             }
           }
@@ -190,12 +206,12 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   // GET /api/auth/google/callback
   router.get(
     '/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+    passport.authenticate('google', { session: false, failureRedirect: `${env.CLIENT_URL}/login` }),
     (req: Request, res: Response) => {
       const user = req.user as { id: string };
       const token = signToken(user.id);
       res.cookie('token', token, JWT_COOKIE_OPTIONS);
-      res.redirect('/');
+      res.redirect(env.CLIENT_URL);
     }
   );
 } else {

@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, ColumnId, ParsedCardData, Priority } from '../../types';
+import { StyledSelect } from '../StyledSelect/StyledSelect';
 
 interface Props {
   card: Card | null; // null = add mode
   allCategories: string[];
   allTags: string[];
   initialCardData?: ParsedCardData;
+  initialColumnId?: ColumnId;
+  categoryColorMap?: Record<string, string>;
   onSave: (data: {
     title: string;
     description: string;
@@ -32,6 +35,8 @@ export function CardModal({
   allCategories,
   allTags,
   initialCardData,
+  initialColumnId,
+  categoryColorMap,
   onSave,
   onUpdate,
   onDelete,
@@ -48,7 +53,7 @@ export function CardModal({
   const [dueDate, setDueDate] = useState(card?.dueDate ?? initialCardData?.dueDate ?? '');
   const [tags, setTags] = useState<string[]>(card?.tags ?? initialCardData?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
-  const [columnId, setColumnId] = useState<ColumnId>(card?.columnId ?? initialCardData?.columnId ?? 'todo');
+  const [columnId, setColumnId] = useState<ColumnId>(card?.columnId ?? initialCardData?.columnId ?? initialColumnId ?? 'todo');
 
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -183,19 +188,20 @@ export function CardModal({
 
           <div className="modal__field">
             <label className="modal__label">Category</label>
-            <select
-              className="modal__select"
+            <StyledSelect
               value={showNewCategory ? '__new__' : category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-            >
-              <option value="">None</option>
-              {allCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-              <option value="__new__">+ Add new category...</option>
-            </select>
+              onChange={handleCategoryChange}
+              placeholder="None"
+              options={[
+                { value: '', label: 'None' },
+                ...allCategories.map((cat) => ({
+                  value: cat,
+                  label: cat,
+                  color: categoryColorMap?.[cat],
+                })),
+                { value: '__new__', label: '+ Add new category...' },
+              ]}
+            />
             {showNewCategory && (
               <input
                 className="modal__input"
@@ -240,16 +246,16 @@ export function CardModal({
           <div className="modal__row">
             <div className="modal__field">
               <label className="modal__label">Priority</label>
-              <select
-                className="modal__select"
+              <StyledSelect
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as Priority)}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+                onChange={(v) => setPriority(v as Priority)}
+                options={[
+                  { value: 'low', label: 'Low', color: '#3b82f6' },
+                  { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                  { value: 'high', label: 'High', color: '#ef4444' },
+                  { value: 'urgent', label: 'Urgent', color: '#ff2d55' },
+                ]}
+              />
             </div>
 
             <div className="modal__field">

@@ -59,8 +59,8 @@ describe('Board endpoints', () => {
         .set('Cookie', cookie)
         .expect(200);
 
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].title).toBe('Board 1');
+      expect(res.body).toHaveLength(2);
+      expect(res.body.map((b: { title: string }) => b.title)).toContain('Board 1');
     });
 
     it('isolates boards between users', async () => {
@@ -76,7 +76,8 @@ describe('Board endpoints', () => {
         .set('Cookie', auth2.cookie)
         .expect(200);
 
-      expect(res.body).toHaveLength(0);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].title).toBe('My Board');
     });
   });
 

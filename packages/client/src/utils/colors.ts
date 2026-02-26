@@ -19,7 +19,7 @@ export function getCategoryColor(categoryName: string): string {
 export function getCategoryBadgeStyle(color: string) {
   return {
     color,
-    backgroundColor: `${color}20`,
-    border: `1px solid ${color}30`,
+    backgroundColor: `${color}33`,
+    border: `1px solid ${color}44`,
   };
 }
