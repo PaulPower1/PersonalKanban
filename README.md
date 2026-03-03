@@ -3,8 +3,15 @@
 A full-stack Kanban board app for managing personal tasks. Features drag-and-drop, voice dictation, tiered billing, and multi-board support.
 
 ## Demo Video
-[![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-YouTube-red?style=for-the-badge)](https://youtu.be/Zf2UjGkr72A)
+<!-- Clickable preview image -->
+[![Watch Demo](demo-output/preview.jpg)](https://youtu.be/Zf2UjGkr72A)
 
+<!-- Centered “button” below -->
+<p align="center">
+  <a href="https://youtu.be/Zf2UjGkr72A">
+    <img src="https://img.shields.io/badge/▶%20Watch%20Full%20Demo-YouTube-red?style=for-the-badge&logo=youtube" />
+  </a>
+</p>
 ## Features
 
 - **Four-column workflow** -- Backlog, To Do, In Progress, Done
