@@ -20,7 +20,6 @@ interface SpeechRecognitionInstance {
   onend: (() => void) | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SpeechRecognitionAPI: (new () => SpeechRecognitionInstance) | undefined =
   typeof window !== 'undefined'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

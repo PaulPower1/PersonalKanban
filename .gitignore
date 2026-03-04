@@ -63,3 +63,6 @@ demo-output/*
 
 # Claude Code
 .claude/
+
+# Local task tracking
+tasks/

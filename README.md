@@ -370,3 +370,116 @@ The client builds to a static bundle (`packages/client/dist/`). The server is a 
 1. **Database**: Provision a PostgreSQL instance and run `npx prisma migrate deploy`
 2. **Server**: Deploy `packages/server` as a Node.js service with the required environment variables
 3. **Client**: Build with `npm run build` and serve `packages/client/dist/` via a CDN or static host, with API requests proxied to the server
+
+## AWS Deployment (Native EC2)
+
+This project maps cleanly to:
+
+- **API**: EC2 instance running Node.js + PM2 (or systemd)
+- **Database**: Amazon RDS for PostgreSQL
+- **Client**: S3 static hosting + CloudFront CDN (serving `packages/client/dist`)
+- **Secrets**: AWS Secrets Manager (do not store secrets in source)
+
+### 1) Provision AWS resources
+
+1. Create an **RDS PostgreSQL** instance and security group rules for EC2 -> RDS access.
+2. Create an **EC2 instance** (Amazon Linux/Ubuntu), attach an IAM role with Secrets Manager read access, and place it behind an ALB.
+3. Create an **S3 bucket** + **CloudFront distribution** for the client.
+4. Add runtime secrets in **Secrets Manager**:
+  - `DATABASE_URL`
+  - `JWT_SECRET`
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `STRIPE_STARTER_PRICE_ID`
+  - `STRIPE_PRO_PRICE_ID`
+  - optional: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`
+
+### 2) Deploy the server on EC2 (no Docker required)
+
+SSH to EC2, then install Node.js 20 and PM2. Example flow:
+
+```bash
+# on EC2
+git clone <your-repo-url>
+cd personal-kanban
+npm ci
+npm run build -w packages/server
+npm install -g pm2
+```
+
+Set server environment variables (or load from Secrets Manager into env), then run migrations and start the API:
+
+```bash
+cd packages/server
+npx prisma migrate deploy
+cd ../..
+pm2 start packages/server/dist/index.js --name personal-kanban-api
+pm2 save
+pm2 startup
+```
+
+Set `NODE_ENV=production`, `PORT=3001`, and `CLIENT_URL` to your CloudFront origin. Use Nginx (or ALB target group directly) to route traffic to port 3001.
+
+### 3) Deploy the client (S3 + CloudFront)
+
+```bash
+# from repo root
+npm run build
+aws s3 sync packages/client/dist s3://<your-bucket-name> --delete
+```
+
+Then invalidate CloudFront cache after deployment:
+
+```bash
+aws cloudfront create-invalidation --distribution-id <distribution-id> --paths "/*"
+```
+
+Set the client API base/proxy to your EC2/ALB URL (or custom domain).
+
+### 4) Production hardening checklist
+
+- Keep all secrets in Secrets Manager (never commit `.env`).
+- Restrict CORS via `CLIENT_URL` to only your frontend domain.
+- Enable HTTPS only (CloudFront + ALB certificates via ACM).
+- Enable backups and automated snapshots for RDS.
+- Rotate `JWT_SECRET` and external API keys regularly.
+
+If you later want managed container orchestration, you can migrate this same app to ECS Fargate.
+
+## Make This Repo Public Safely
+
+Before switching visibility to public, run this checklist:
+
+1. **Confirm no secret files are tracked**
+  - Keep only `packages/server/.env.example` in git.
+  - Ensure `.env`, key files, and local credentials are ignored by `.gitignore`.
+
+2. **Scan the repository for secrets**
+
+```bash
+# fast grep checks (run at repo root)
+git grep -nE "(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{80,}|sk_live_[A-Za-z0-9]{20,}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----)" || true
+git grep -nE "(JWT_SECRET|DATABASE_URL|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY)\s*[:=]\s*['\"]?[^'\"\n\r]+" || true
+```
+
+3. **Use a dedicated secret scanner (recommended)**
+
+```bash
+# gitleaks example
+gitleaks detect --source . --verbose
+```
+
+4. **If a secret was ever committed, rotate and purge history**
+  - Rotate compromised credentials immediately (Stripe, DB, JWT, OAuth, etc.).
+  - Rewrite git history using `git filter-repo` or BFG, then force-push.
+
+5. **Verify runtime config strategy**
+  - Production secrets must come from AWS Secrets Manager / environment injection.
+  - Never hardcode secrets in client code, server source, tests, or docs.
+
+6. **Final pre-public checks**
+
+```bash
+npm run lint
+npm audit --json
+```

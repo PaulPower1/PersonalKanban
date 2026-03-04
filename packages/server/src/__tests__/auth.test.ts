@@ -4,14 +4,18 @@ import app from '../index';
 
 // Mock Stripe
 vi.mock('stripe', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
+  const StripeMock = vi.fn(function StripeMock() {
+    return {
       customers: {
         create: vi.fn().mockResolvedValue({ id: 'cus_test_123' }),
       },
       checkout: { sessions: { create: vi.fn() } },
       webhooks: { constructEvent: vi.fn() },
-    })),
+    };
+  });
+
+  return {
+    default: StripeMock,
   };
 });
 

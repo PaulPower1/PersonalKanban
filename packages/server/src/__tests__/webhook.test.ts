@@ -3,18 +3,24 @@ import request from 'supertest';
 import app from '../index';
 import { prisma } from '../db';
 
-const mockConstructEvent = vi.fn();
+const { mockConstructEvent } = vi.hoisted(() => ({
+  mockConstructEvent: vi.fn(),
+}));
 
 // Mock Stripe
 vi.mock('stripe', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
+  const StripeMock = vi.fn(function StripeMock() {
+    return {
       customers: {
         create: vi.fn().mockResolvedValue({ id: 'cus_test_webhook' }),
       },
       checkout: { sessions: { create: vi.fn() } },
       webhooks: { constructEvent: mockConstructEvent },
-    })),
+    };
+  });
+
+  return {
+    default: StripeMock,
   };
 });
 

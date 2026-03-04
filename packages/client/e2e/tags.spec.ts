@@ -11,7 +11,7 @@ test.describe('Tags feature', () => {
   });
 
   test('add tags via modal', async ({ page }) => {
-    await page.click('button:has-text("+ Add Card")');
+    await page.locator('.toolbar__btn--primary', { hasText: 'Add Card' }).click();
     await page.waitForSelector('.modal');
 
     await page.fill('.modal__input[placeholder="Card title..."]', 'Test tagged card');

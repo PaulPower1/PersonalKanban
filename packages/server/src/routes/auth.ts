@@ -5,7 +5,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { z } from 'zod';
 import { prisma } from '../db';
-import { env, JWT_COOKIE_OPTIONS } from '../config';
+import { env, JWT_CLEAR_COOKIE_OPTIONS, JWT_COOKIE_OPTIONS } from '../config';
 import { signToken, requireAuth } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 
@@ -108,7 +108,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response, next: Nex
 
 // POST /api/auth/logout
 router.post('/logout', (_req: Request, res: Response) => {
-  res.clearCookie('token', JWT_COOKIE_OPTIONS);
+  res.clearCookie('token', JWT_CLEAR_COOKIE_OPTIONS);
   res.json({ ok: true });
 });
 

@@ -8,14 +8,14 @@ export function useBoard(
   boardId: string | null,
   onRefresh: () => Promise<void>
 ) {
-  const cards = board?.cards ?? [];
-
   const getColumnCards = useCallback(
-    (columnId: ColumnId) =>
-      cards
+    (columnId: ColumnId) => {
+      const boardCards = board?.cards ?? [];
+      return boardCards
         .filter((c) => c.columnId === columnId)
-        .sort((a, b) => a.order - b.order),
-    [cards]
+        .sort((a, b) => a.order - b.order);
+    },
+    [board]
   );
 
   const addCard = useCallback(

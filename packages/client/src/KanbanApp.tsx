@@ -192,7 +192,8 @@ export function KanbanApp() {
   );
 
   const handleCategoryManagerSave = useCallback(
-    (_board: KanbanBoard) => {
+    (board: KanbanBoard) => {
+      void board;
       // Refresh board data from server
       refreshBoard();
     },

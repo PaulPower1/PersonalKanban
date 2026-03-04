@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
     { title: 'Card in todo' },
     { title: 'Another todo card' },
   ]) {
-    await page.click('button:has-text("+ Add Card")');
+    await page.locator('.toolbar__btn--primary', { hasText: 'Add Card' }).click();
     await page.waitForSelector('.modal');
     await page.fill('.modal__input[placeholder="Card title..."]', cardData.title);
     await page.click('.modal__btn--save');

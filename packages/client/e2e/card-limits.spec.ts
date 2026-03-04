@@ -8,14 +8,11 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Card limits', () => {
   test('free plan blocks card 11', async ({ page }) => {
-    // Create a board
-    await page.click('.sidebar__add-btn');
-    await page.waitForTimeout(500);
+    const addCardButton = page.locator('.toolbar__btn--primary', { hasText: 'Add Card' });
 
-    // Get the board - we should be on it
     // Add 10 cards
     for (let i = 1; i <= 10; i++) {
-      await page.click('button:has-text("+ Add Card")');
+      await addCardButton.click();
       await page.waitForSelector('.modal');
       await page.fill('.modal__input[placeholder="Card title..."]', `Card ${i}`);
       await page.click('.modal__btn--save');
@@ -24,7 +21,7 @@ test.describe('Card limits', () => {
     }
 
     // 11th card should show limit error
-    await page.click('button:has-text("+ Add Card")');
+    await addCardButton.click();
     await page.waitForSelector('.modal');
     await page.fill('.modal__input[placeholder="Card title..."]', 'Card 11');
     await page.click('.modal__btn--save');

@@ -33,8 +33,8 @@ test.describe('Voice dictation → Card modal flow', () => {
     const descTextarea = getModalField(page, 'Description').locator('textarea');
     await expect(descTextarea).toHaveValue('');
 
-    const prioritySelect = getModalField(page, 'Priority').locator('select');
-    await expect(prioritySelect).toHaveValue('medium');
+    const priorityValue = getModalField(page, 'Priority').locator('.styled-select__value');
+    await expect(priorityValue).toContainText('Medium');
   });
 
   test('partial fields — title + priority only', async ({ page }) => {
@@ -46,8 +46,8 @@ test.describe('Voice dictation → Card modal flow', () => {
     const titleInput = getModalField(page, 'Title').locator('input');
     await expect(titleInput).toHaveValue('Fix the sink');
 
-    const prioritySelect = getModalField(page, 'Priority').locator('select');
-    await expect(prioritySelect).toHaveValue('urgent');
+    const priorityValue = getModalField(page, 'Priority').locator('.styled-select__value');
+    await expect(priorityValue).toContainText('Urgent');
   });
 
   test('column specification', async ({ page }) => {

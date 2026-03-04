@@ -55,9 +55,11 @@ if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development') {
 // Error handler — MUST be last
 app.use(errorHandler);
 
-const port = env.PORT;
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+if (env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+  const port = env.PORT;
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
+}
 
 export default app;
