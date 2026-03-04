@@ -58,8 +58,8 @@ playwright-report/
 
 # Demo output
 demo-output/*
-!demo-output/personalkanban-demo.mp4
-!demo-output/preview.jpg
+!demo-output/
+!demo-output/personalkanban-demo-preview.jpg
 
 # Claude Code
 .claude/
