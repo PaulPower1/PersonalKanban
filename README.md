@@ -446,39 +446,6 @@ Set the client API base/proxy to your EC2/ALB URL (or custom domain).
 
 If you later want managed container orchestration, you can migrate this same app to ECS Fargate.
 
-## Make This Repo Public Safely
-
-Before switching visibility to public, run this checklist:
-
-1. **Confirm no secret files are tracked**
-  - Keep only `packages/server/.env.example` in git.
-  - Ensure `.env`, key files, and local credentials are ignored by `.gitignore`.
-
-2. **Scan the repository for secrets**
-
-```bash
-# fast grep checks (run at repo root)
-git grep -nE "(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{80,}|sk_live_[A-Za-z0-9]{20,}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----)" || true
-git grep -nE "(JWT_SECRET|DATABASE_URL|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY)\s*[:=]\s*['\"]?[^'\"\n\r]+" || true
-```
-
-3. **Use a dedicated secret scanner (recommended)**
-
-```bash
-# gitleaks example
-gitleaks detect --source . --verbose
-```
-
-4. **If a secret was ever committed, rotate and purge history**
-  - Rotate compromised credentials immediately (Stripe, DB, JWT, OAuth, etc.).
-  - Rewrite git history using `git filter-repo` or BFG, then force-push.
-
-5. **Verify runtime config strategy**
-  - Production secrets must come from AWS Secrets Manager / environment injection.
-  - Never hardcode secrets in client code, server source, tests, or docs.
-
-6. **Final pre-public checks**
-
 ```bash
 npm run lint
 npm audit --json
